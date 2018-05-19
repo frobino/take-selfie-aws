@@ -31,42 +31,40 @@ def on_message(client, userdata, msg):
     print("payload: "+str(msg.payload))
     
     #Logic to take the selfie
-    msg.topic = "selfie"
-    if msg.topic =="selfie":
-        try:
-            #delete old photos
-            os.system("rm Photos/*.jpg")
-            
-            #take a photo using the name passed to us from mqtt message
-            photo  = "Photos/" + str(msg.payload) + ".jpg"
-            photo = photo.replace("/b'","/")
-            photo = photo.replace("'","")
-            photo = photo.replace("`","")
-            os_string = "fswebcam --no-banner " + photo
-            os.system(os_string)
-            
-            #publish a message letting the magic_mirror presentation layer know that the picture was taken. This is so that the picture can be displayed.
-            message = 'success'
-            payload = json.dumps({'intent':'selfie-taken','message': 'success' ,'photo': photo})
-            mqttc.publish('display', payload, qos=1)
-            print('published')
-            
-            #use tinyS3 to upload the photo to AWS S3
-            #Note this key only allows write access to the mysticmirror bucket; contact Darian Johnson for the key for this access
-            S3_SECRET_KEY = 'WEUKlD1qGWfibHSYj/6YCrgnfcN7MpHeyLG2S08U' 
-            S3_ACCESS_KEY = 'AKIAICSJI4HPU7Q2YSKQ'
-            
-            conn = tinys3.Connection(S3_ACCESS_KEY,S3_SECRET_KEY,tls=True, endpoint='s3-us-west-2.amazonaws.com')
-            f = open(photo,'rb')
-            conn.upload(photo,f,s3_bucket)
-            conn.get(photo,f,s3_bucket)
+    try:
+        #delete old photos
+        os.system("rm Photos/*.jpg")
+        
+        #take a photo using the name passed to us from mqtt message
+        photo  = "Photos/" + str(msg.payload) + ".jpg"
+        photo = photo.replace("/b'","/")
+        photo = photo.replace("'","")
+        photo = photo.replace("`","")
+        os_string = "fswebcam --no-banner " + photo
+        os.system(os_string)
+        
+        #publish a message letting the magic_mirror presentation layer know that the picture was taken. This is so that the picture can be displayed.
+        message = 'success'
+        payload = json.dumps({'intent':'selfie-taken','message': 'success' ,'photo': photo})
+        mqttc.publish('display', payload, qos=1)
+        print('published')
+        
+        #use tinyS3 to upload the photo to AWS S3
+        #Note this key only allows write access to the mysticmirror bucket; contact Darian Johnson for the key for this access
+        S3_SECRET_KEY = 'WEUKlD1qGWfibHSYj/6YCrgnfcN7MpHeyLG2S08U' 
+        S3_ACCESS_KEY = 'AKIAICSJI4HPU7Q2YSKQ'
+        
+        conn = tinys3.Connection(S3_ACCESS_KEY,S3_SECRET_KEY,tls=True, endpoint='s3-us-west-2.amazonaws.com')
+        f = open(photo,'rb')
+        conn.upload(photo,f,s3_bucket)
+        conn.get(photo,f,s3_bucket)
             
             
-        except:
-            payload = json.dumps({'intent':'selfie-taken','message':'error'})
-            mqttc.publish('/display', payload, qos=1)
-            message = 'error'
-            print('did not publish')
+    except:
+        payload = json.dumps({'intent':'selfie-taken','message':'error'})
+        mqttc.publish('/display', payload, qos=1)
+        message = 'error'
+        print('did not publish')
 
 mqttc = paho.Client()
 mqttc.on_connect = on_connect
