@@ -6,7 +6,6 @@
 # this code is part of the Mystic Mirror Project 
 # for questions, contact me on Twitter @DarianBJohnson
 
-
 import paho.mqtt.client as paho
 import os
 import socket
@@ -14,6 +13,7 @@ import ssl
 import uuid
 import json
 import tinys3
+# import boto
 
 #update with the email address used when you linked the Mystic Mirror skill to your Google account
 email = 'danieletatasciore@gmail.com'
@@ -33,10 +33,10 @@ def on_message(client, userdata, msg):
     #Logic to take the selfie
     try:
         #delete old photos
-        os.system("rm ~/Pictures/*.jpg")
+        os.system("rm /home/pi/Pictures/*.jpg")
         
         #take a photo using the name passed to us from mqtt message
-        photo  = "~/Pictures/" + str(msg.payload) + ".jpg"
+        photo  = "/home/pi/Pictures/" + str(msg.payload) + ".jpg"
         photo = photo.replace("/b'","/")
         photo = photo.replace("'","")
         photo = photo.replace("`","")
@@ -55,14 +55,23 @@ def on_message(client, userdata, msg):
         
         #use tinyS3 to upload the photo to AWS S3
         #Note this key only allows write access to the mysticmirror bucket; contact Darian Johnson for the key for this access
-        # S3_SECRET_KEY = 'WEUKlD1qGWfibHSYj/6YCrgnfcN7MpHeyLG2S08U' 
-        # S3_ACCESS_KEY = 'AKIAICSJI4HPU7Q2YSKQ'
-        # 
-        # conn = tinys3.Connection(S3_ACCESS_KEY,S3_SECRET_KEY,tls=True, endpoint='s3-us-west-2.amazonaws.com')
-        # f = open(photo,'rb')
-        # conn.upload(photo,f,s3_bucket)
-        # conn.get(photo,f,s3_bucket)
-            
+        S3_SECRET_KEY = 'WEUKlD1qGWfibHSYj/6YCrgnfcN7MpHeyLG2S08U' 
+        S3_ACCESS_KEY = 'AKIAICSJI4HPU7Q2YSKQ'
+        
+        conn = tinys3.Connection(S3_ACCESS_KEY,S3_SECRET_KEY,tls=True, endpoint='s3-us-west-2.amazonaws.com')
+        f = open(photo,'rb')
+        print("after open")
+        print(photo)
+        print(f)
+        print(s3_bucket)
+        print conn.upload(photo,f,s3_bucket)
+        print conn.get(photo,f,s3_bucket)
+        # conn = boto.connect_s3(S3_ACCESS_KEY,S3_SECRET_KEY)
+        # bucket = conn.get_bucket(s3_bucket)
+        # k = boto.s3.key.Key(s3_bucket)
+        # print(k)
+        # k.key = photo
+        # k.set_contents_from_filename(photo,cb=percent_cb,num_cb=10)
             
     except:
         payload = json.dumps({'intent':'selfie-taken','message':'error'})
